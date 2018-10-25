@@ -5,27 +5,25 @@
   </head>
   <body>
     <div class="container">
-      <div class="options-box">
-        <h1>Find Your New NYC Home</h1>
-        <div>
-          <input id="show-listings" type="button" value="Show Listings">
-          <input id="hide-listings" type="button" value="Hide Listings">
-          <hr>
-          <span class="text"> Draw a shape to search within it for homes!</span>
-          <input id="toggle-drawing"  type="button" value="Drawing Tools">
+      <div class="listing-box">
+        <h1>Restaurants</h1>
+        <div class="search-form">
+          <form>
+            <div class="label">Filter by Category:</div>
+            <select height="5" data-bind="options: categories"> </select>
+          </form>
         </div>
-        <hr>
-        <div>
-          <input id="zoom-to-area-text" type="text" placeholder="Enter your favorite area!">
-          <input id="zoom-to-area" type="button" value="Zoom">
+        <div class="item-list">
+
         </div>
       </div>
       <div id="map"></div>
     </div>
 
     <!-- scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
     <script async defer src="https://maps.googleapis.com/maps/api/js?libraries=geometry,drawing&key=AIzaSyCVh9PUUhyMcATsVeuMl9kSYplnunZa5Xk&v=3&callback=initMap"></script>
-    <script src="js/map.js"></script>
     <script src="js/app.js"></script>
 
   </body>
