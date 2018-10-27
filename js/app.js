@@ -4,7 +4,7 @@ function viewModel() {
   var self = this;
 
   // categories
-  self.categories = ko.observableArray(["Mexican", "Italian", "American", "Chinese", "Indian"]); // Initial items
+  self.categories = ko.observableArray(["Art", "History", "Science"]); // Initial items
 
   // Restaurants
   self.allRestaurants = ko.observableArray([]);
@@ -14,15 +14,19 @@ function viewModel() {
 // initialize view model
 ko.applyBindings(new viewModel());
 
+// store location data from api calls to build markers from
+locations = [];
+
 // start map
 var map;
 
-// Create a new blank array for all the listing markers.
+// container to hold markers
 var markers = [];
 
 // This global polygon variable is to ensure only ONE polygon is rendered.
 var polygon = null;
 
+// initialize the map with markers
 function initMap() {
   // Create a styles array to use with the map.
   var styles = [
@@ -100,124 +104,162 @@ function initMap() {
     mapTypeControl: false
   });
 
-
-
-  var locations = [
-    {title: 'National Gallery of Art', location: {lat: 38.892060, lng: -77.019910}, category: 'art'},
-    {title: "United States Holocaust Memorial Museum", location: {lat: 38.886690, lng: -77.032690}, category: 'history'},
-    {title: 'National Air and Space Museum', location: {lat: 38.887560, lng: -77.019910}, category: 'science'},
-    {title: 'Smithsonian National Museum of Natural History', location: {lat: 38.892000, lng: -76.992640}, category: 'science'},
-    {title: 'National Museum of African American History and Culture', location: {lat: 38.891180, lng: -77.032750}, category: 'history'},
-    {title: 'National Portrait Gallery', location: {lat: 38.897360, lng: -77.048090}, category: 'art'},
-    {title: 'Newseum', location: {lat: 38.893180, lng: -77.019190}, category: 'history'},
-    {title: 'Museum of the Bible', location: {lat: 38.884840, lng: -77.017140}, category: 'history'},
-    {title: 'Smithsonian American Art Museum', location: {lat: 38.897210, lng: -77.022980}, category: 'art'},
-    {title: 'The Phillips Collection', location: {lat: 38.911750, lng: -77.047020}, category: 'art'}
-  ];
-
-
-  // foursquare api call
-  var foursquareUrl = "https://api.foursquare.com/v2/venues/explore?client_id=HOH430HARXOZWVQOACVEL2W2J5NKTHFZBLQWV4OUNIGH4ARH" +
-            "&client_secret=CP2SWQHIFQ0MCLAYFOEAZ5O0Q4ZPIEX1K1DFD2COJHK0D112&v=20180323" +
-            "&limit=50&categoryId=4bf58dd8d48988d18f941735&ll=38.89511,-77.03637";
-
-
-  function foursquareError() {
-    alert("Foursquare Error");
+  // get api data
+  // mapping of categories to foursquare id's
+  museumCategories = {
+    '4bf58dd8d48988d18f941735': 'art',
+    '4bf58dd8d48988d190941735': 'history',
+    '4bf58dd8d48988d191941735': 'science'
   }
 
+  // foursquare api call
+  var foursquareUrl = "https://api.foursquare.com/v2/venues/search";
+  foursquareUrl += '?' + $.param({
+    'll': '38.89511,-77.03637',
+    'client_id': "HOH430HARXOZWVQOACVEL2W2J5NKTHFZBLQWV4OUNIGH4ARH",
+    'client_secret': "CP2SWQHIFQ0MCLAYFOEAZ5O0Q4ZPIEX1K1DFD2COJHK0D112",
+    'categoryId': '4bf58dd8d48988d18f941735,4bf58dd8d48988d190941735,4bf58dd8d48988d191941735',
+    'limit': '10',
+    'v': '20181026'
+  });
+
+  // settings for news api call
   var foursquareSettings = {
     "async": true,
     "crossDomain": true,
     "url": foursquareUrl,
-    "method": "GET",
-    "error": foursquareError
+    "method": "GET"
   }
 
   $.ajax(foursquareSettings).done( function( data ) {
+    venues = data['response']['venues'];
 
-    //console.log(data['response']['groups']['0']['items']);
-    var venues = data['response']['groups']['0']['items'];
-    console.log(venues);
-    var index;
-    for (index = 0; index < venues.length; ++index) {
+    // get details on all 10 venues
+    for (var i = 0; i < venues.length; i++) {
+      // wrap in closure to save i location when making ajax calls
+      (function (i) {
 
+        // get basic values from initial request
+        var venue = venues[i];
+        var venueName = venue['name'];
+        var venueCategory = museumCategories[venue['categories'][0]['id']];
+        var venueAddress = venue['location']['formattedAddress'][0];
+        var venueLat = venue['location']['lat'];
+        var venueLng = venue['location']['lng'];
 
-        // save key variables for venue
-        var thisVenue = venues[index]['venue'];
-        var venueName = thisVenue['name'];
-        var venueLat = thisVenue['location']['lat'];
-        var venueLng = thisVenue['location']['lng'];
-        var venueCategory = thisVenue['categories'][0]['id'];
+        // prepare url for request for more detailed information
+        var wikipediaUrl = "https://en.wikipedia.org/w/api.php";
+        wikipediaUrl += '?' + $.param({
+          'action': "opensearch",
+          'search': venueName,
+          'limit': "3"
+        });
 
+        // settings for news api call
+        var wikipediaSettings = {
+          "async": true,
+          "dataType": "jsonp",
+          "crossDomain": true,
+          "url": wikipediaUrl,
+          "method": "GET"
+        }
 
-        /*
-        // initialize vars for yelp api call
-        var venueRatings;
-        var venuePrice;
-        var venueNumReviews;
-        var venueImageUrl;
+        // make wikipedia calls
+        $.ajax(wikipediaSettings).done( function( data ) {
 
-        var venue = {
-          title: venueName,
-          location: {lat: venueLat, lng: venueLng },
-          category: venueCategory,
-          ratings: venueRatings,
-          price: venuePrice,
-          num_reviews: venueNumReviews,
-          image_url: venueImageUrl
-        };
-        */
+          var articles = data[3];
+          var articleOutput;
+          if (articles.length > 0) {
+            articleOutput = "<p><h3>Top Wikipedia Articles:</h3><ul>";
+            for (var j = 0; j < articles.length; j++) {
+              var thisArticle = articles[j];
+              thisArticle = '<li><a href="' + thisArticle + '" target="_blank">' + venueName + '</li>';
+              articleOutput += thisArticle;
+            }
+            articleOutput += "</ul></p>";
+          }
+          else {
+            articleOutput = "<p>No Wikipedia Articles Available</p>";
+          }
 
+          // build location object (to build marker with later)
+          var location = {
+            name: venueName,
+            category: venueCategory,
+            address: venueAddress,
+            lat: venueLat,
+            lng: venueLng,
+            articles: articleOutput
+          }
 
-      }
-    });
-  // End foursquare api call (and nested yelp api call)
+          // add location to array
+          // this data will be used to fill the sidebar
+          locations.push(location);
 
+          // info window to display street view data
+          var largeInfowindow = new google.maps.InfoWindow();
 
+          // Style the markers a bit. This will be our listing marker icon.
+          var defaultIcon = makeMarkerIcon('0091ff');
 
+          // Create a "highlighted location" marker color for when the user
+          // mouses over the marker.
+          var highlightedIcon = makeMarkerIcon('FFFF24');
 
-  var largeInfowindow = new google.maps.InfoWindow();
+          // Get the position from the location array.
+          var position = { lat: location['lat'], lng: location['lng'] };
+          var title = location['name'];
 
-  // Style the markers a bit. This will be our listing marker icon.
-  var defaultIcon = makeMarkerIcon('0091ff');
+          // Create a marker per location, and put into markers array.
+          var marker = new google.maps.Marker({
+            position: position,
+            title: title,
+            animation: google.maps.Animation.DROP,
+            icon: defaultIcon,
+            id: i
+          });
 
-  // Create a "highlighted location" marker color for when the user
-  // mouses over the marker.
-  var highlightedIcon = makeMarkerIcon('FFFF24');
+          // Push the marker to our array of markers.
+          markers.push(marker);
 
-  // The following group uses the location array to create an array of markers on initialize.
-  for (var i = 0; i < locations.length; i++) {
+          // Create an onclick event to open the large infowindow at each marker.
+          // Make the marker bounce on click
+          marker.addListener('click', function() {
+            populateInfoWindow(this, largeInfowindow);
+            if (marker.getAnimation() !== null) {
+              marker.setAnimation(null);
+            } else {
+              marker.setAnimation(google.maps.Animation.BOUNCE);
+            }
+          });
 
-    // Get the position from the location array.
-    var position = locations[i].location;
-    var title = locations[i].title;
+          // Two event listeners - one for mouseover, one for mouseout,
+          // to change the colors back and forth.
+          marker.addListener('mouseover', function() {
+            this.setIcon(highlightedIcon);
+          });
 
-    // Create a marker per location, and put into markers array.
-    var marker = new google.maps.Marker({
-      position: position,
-      title: title,
-      animation: google.maps.Animation.DROP,
-      icon: defaultIcon,
-      id: i
-    });
+          // got back to original color when mouse leaves
+          marker.addListener('mouseout', function() {
+            this.setIcon(defaultIcon);
+          });
 
-    // Push the marker to our array of markers.
-    markers.push(marker);
+          // initialize marker
+          marker.setMap(map);
 
-    // Create an onclick event to open the large infowindow at each marker.
-    marker.addListener('click', function() {
-      populateInfoWindow(this, largeInfowindow);
-    });
-    // Two event listeners - one for mouseover, one for mouseout,
-    // to change the colors back and forth.
-    marker.addListener('mouseover', function() {
-      this.setIcon(highlightedIcon);
-    });
-    marker.addListener('mouseout', function() {
-      this.setIcon(defaultIcon);
-    });
-  }
+        }).fail(function(err) {
+          throw err;
+          alert("No Location Data Available");
+        });
+
+      })(i);
+    }
+
+  }).fail(function(err) {
+    throw err;
+    alert("No Wikipedia Articles Available");
+  });
+
 }
 
 
