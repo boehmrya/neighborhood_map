@@ -1,18 +1,4 @@
 
-// knockout.js view model
-function viewModel() {
-  var self = this;
-
-  // categories
-  self.categories = ko.observableArray(["Art", "History", "Science"]); // Initial items
-
-  // Restaurants
-  self.allRestaurants = ko.observableArray([]);
-
-};
-
-// initialize view model
-ko.applyBindings(new viewModel());
 
 // store location data from api calls to build markers from
 locations = [];
@@ -340,3 +326,29 @@ function makeMarkerIcon(markerColor) {
     new google.maps.Size(21,34));
   return markerImage;
 }
+
+// knockout.js view model
+// this is initialized
+function viewModel(locations) {
+  var self = this;
+
+  // categories
+  self.categories = ko.observableArray(["art", "history", "science"]); // Initial items
+
+  // Museums
+  self.museums = ko.observableArray(locations);
+  //console.log(typeof self.museums);
+
+  var peopleArray = [
+        { name: 'Bert' },
+        { name: 'Charles' },
+        { name: 'Denise' }
+    ];
+  self.people = ko.observableArray(locations);
+
+  //console.log(self.people());
+
+};
+
+// initialize view model
+ko.applyBindings(new viewModel(locations));
