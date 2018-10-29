@@ -2,6 +2,7 @@
 <html>
   <head>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
   <body>
     <div class="container">
@@ -10,17 +11,18 @@
         <div class="search-form">
           <form>
             <div class="label">Filter by Category:</div>
-            <select height="5" data-bind="options: categories"> </select>
+            <select height="5" data-bind="options: categories,
+                                          optionsCaption: 'Choose one...',
+                                          value: selectedCategory"> </select>
           </form>
         </div>
-        <div data-bind="text: museums()[0].name"></div>
-        <div data-bind="foreach: people">
+        <div class="locations" data-bind="foreach: filteredMuseums">
           <div class="location">
-            <div data-bind="text: museums()[0].name"></div>
-            <!--
-            <div data-bind="text: category"></div>
-            <div data-bind="text: address"></div>
-            <div data-bind="text: articles"></div>-->
+            <div class="name" data-bind="text: name"></div>
+            <div class="more-info">
+              <div class="address" data-bind="text: address"></div>
+              <div class="articles" data-bind="html: articles"></div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,43 @@
 
 
-// store location data from api calls to build markers from
-locations = [];
+// knockout.js view model
+// this is initialized
+function viewModel() {
+  var self = this;
+
+  // categories of museums
+  self.categories = ko.observableArray(["art", "history", "science"]); // Initial items
+
+  // selected category in the dropdown
+  self.selectedCategory = ko.observable();
+
+  // Holds museum data brought in by foursquare and wikipedia
+  self.museums = ko.observableArray();
+
+  // store indicies that should show
+  self.filteredMuseums = ko.computed(function() {
+    var museums = self.museums();
+    var filtered = [];
+    var filter = self.selectedCategory();
+
+    for (var i = 0; i < museums.length; i++) {
+        category = museums[i].category;
+
+        if ((filter == undefined) || (filter == category)) {
+
+          filtered.push(museums[i]);
+        }
+    }
+    return filtered;
+  });
+
+};
+
+
+// set up view viewModel
+// will add locations to it after ajax calls
+// binding happens at bottom of file
+var vm = new viewModel();
 
 // start map
 var map;
@@ -129,6 +165,9 @@ function initMap() {
         var venue = venues[i];
         var venueName = venue['name'];
         var venueCategory = museumCategories[venue['categories'][0]['id']];
+        if (venueCategory == undefined) {
+          venueCategory = 'generic';
+        }
         var venueAddress = venue['location']['formattedAddress'][0];
         var venueLat = venue['location']['lat'];
         var venueLng = venue['location']['lng'];
@@ -138,7 +177,7 @@ function initMap() {
         wikipediaUrl += '?' + $.param({
           'action': "opensearch",
           'search': venueName,
-          'limit': "3"
+          'limit': "1"
         });
 
         // settings for news api call
@@ -156,16 +195,16 @@ function initMap() {
           var articles = data[3];
           var articleOutput;
           if (articles.length > 0) {
-            articleOutput = "<p><h3>Top Wikipedia Articles:</h3><ul>";
+            articleOutput = '<div>';
             for (var j = 0; j < articles.length; j++) {
               var thisArticle = articles[j];
-              thisArticle = '<li><a href="' + thisArticle + '" target="_blank">' + venueName + '</li>';
+              thisArticle = '<a href="' + thisArticle + '" target="_blank">' + venueName + '</a>';
               articleOutput += thisArticle;
             }
-            articleOutput += "</ul></p>";
+            articleOutput += '</div>';
           }
           else {
-            articleOutput = "<p>No Wikipedia Articles Available</p>";
+            articleOutput = '<div>No Wikipedia Articles Available</div>';
           }
 
           // build location object (to build marker with later)
@@ -180,7 +219,7 @@ function initMap() {
 
           // add location to array
           // this data will be used to fill the sidebar
-          locations.push(location);
+          vm.museums.push(location);
 
           // info window to display street view data
           var largeInfowindow = new google.maps.InfoWindow();
@@ -195,11 +234,15 @@ function initMap() {
           // Get the position from the location array.
           var position = { lat: location['lat'], lng: location['lng'] };
           var title = location['name'];
+          var address = location['address'];
+          var articles = location['articles'];
 
           // Create a marker per location, and put into markers array.
           var marker = new google.maps.Marker({
             position: position,
             title: title,
+            address: address,
+            articles: articles,
             animation: google.maps.Animation.DROP,
             icon: defaultIcon,
             id: i
@@ -219,6 +262,7 @@ function initMap() {
             }
           });
 
+
           // Two event listeners - one for mouseover, one for mouseout,
           // to change the colors back and forth.
           marker.addListener('mouseover', function() {
@@ -234,16 +278,14 @@ function initMap() {
           marker.setMap(map);
 
         }).fail(function(err) {
-          throw err;
-          alert("No Location Data Available");
+          alert("No Wikipedia Articles Available");
         });
 
       })(i);
     }
 
   }).fail(function(err) {
-    throw err;
-    alert("No Wikipedia Articles Available");
+    alert("No Foursquare Data Available");
   });
 
 }
@@ -262,56 +304,14 @@ function populateInfoWindow(marker, infowindow) {
     infowindow.addListener('closeclick', function() {
       infowindow.marker = null;
     });
-    var streetViewService = new google.maps.StreetViewService();
-    var radius = 50;
-    // In case the status is OK, which means the pano was found, compute the
-    // position of the streetview image, then calculate the heading, then get a
-    // panorama from that and set the options
-    function getStreetView(data, status) {
-      if (status == google.maps.StreetViewStatus.OK) {
-        var nearStreetViewLocation = data.location.latLng;
-        var heading = google.maps.geometry.spherical.computeHeading(
-          nearStreetViewLocation, marker.position);
-          infowindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
-          var panoramaOptions = {
-            position: nearStreetViewLocation,
-            pov: {
-              heading: heading,
-              pitch: 30
-            }
-          };
-        var panorama = new google.maps.StreetViewPanorama(
-          document.getElementById('pano'), panoramaOptions);
-      } else {
-        infowindow.setContent('<div>' + marker.title + '</div>' +
-          '<div>No Street View Found</div>');
-      }
-    }
-    // Use streetview service to get the closest streetview image within
-    // 50 meters of the markers position
-    streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
-    // Open the infowindow on the correct marker.
+
+    infowindow.setContent('<div>' + marker.title + '</div>' +
+                          '<div>' + marker.address + '</div>' +
+                          '<div>' + marker.articles + '</div>');
     infowindow.open(map, marker);
   }
 }
 
-// This function will loop through the markers array and display them all.
-function showListings() {
-  var bounds = new google.maps.LatLngBounds();
-  // Extend the boundaries of the map for each marker and display the marker
-  for (var i = 0; i < markers.length; i++) {
-    markers[i].setMap(map);
-    bounds.extend(markers[i].position);
-  }
-  map.fitBounds(bounds);
-}
-
-// This function will loop through the listings and hide them all.
-function hideMarkers(markers) {
-  for (var i = 0; i < markers.length; i++) {
-    markers[i].setMap(null);
-  }
-}
 
 // This function takes in a COLOR, and then creates a new marker
 // icon of that color. The icon will be 21 px wide by 34 high, have an origin
@@ -327,28 +327,42 @@ function makeMarkerIcon(markerColor) {
   return markerImage;
 }
 
-// knockout.js view model
-// this is initialized
-function viewModel(locations) {
-  var self = this;
 
-  // categories
-  self.categories = ko.observableArray(["art", "history", "science"]); // Initial items
+$(document).ready( function() {
+  $(".locations").on("click", ".location", function() {
+    var thisLocation = $(this);
+    var thisName = thisLocation.find('.name').text();
+    var infowindow = new google.maps.InfoWindow();
+    var thisMarker;
 
-  // Museums
-  self.museums = ko.observableArray(locations);
-  //console.log(typeof self.museums);
+    // find associated marker
+    for (var i = 0; i < markers.length; i++) {
+      if (markers[i].title == thisName) {
+        thisMarker = markers[i];
+        infowindow.marker = thisMarker;
+      }
+    }
 
-  var peopleArray = [
-        { name: 'Bert' },
-        { name: 'Charles' },
-        { name: 'Denise' }
-    ];
-  self.people = ko.observableArray(locations);
+    // animate associated marker
+    if (thisLocation.hasClass('open')) {
+      thisLocation.removeClass('open');
+      if (thisMarker != undefined) {
+        thisMarker.setAnimation(null);
+        infowindow.marker = null;
+        infowindow.setContent('');
+      }
+    }
+    else {
+      thisLocation.addClass('open');
+      if (thisMarker != undefined) {
+        thisMarker.setAnimation(google.maps.Animation.BOUNCE);
+        populateInfoWindow(thisMarker, infowindow);
+      }
+    }
+  });
+});
 
-  //console.log(self.people());
 
-};
 
 // initialize view model
-ko.applyBindings(new viewModel(locations));
+ko.applyBindings(vm);
