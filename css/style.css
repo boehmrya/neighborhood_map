@@ -82,3 +82,47 @@ h3 {
 [aria-hidden="true"] {
     visibility: hidden;
 }
+
+@media screen and (max-width: 992px) {
+  #map {
+    top: 40%;
+    left: 0;
+  }
+  h1 {
+    margin-top: 0;
+    margin-right: 20px;
+    float: left;
+  }
+  .search-form .label {
+    float: left;
+    margin-right: 10px;
+  }
+  .listing-box {
+    height: 40%;
+    width: 100%;
+  }
+  .locations {
+    clear: both;
+  }
+  .location {
+    width: 30%;
+    float: left;
+    margin-right: 3%;
+  }
+  .location:nth-child(3n+4) {
+    clear: left;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .location {
+    width: 100%;
+    float: none;
+    margin-right: 0%;
+  }
+  h1 {
+    float: none;
+    margin-right: 0;
+    margin-bottom: 0;
+  }
+}
