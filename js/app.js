@@ -1,4 +1,32 @@
 
+// object to hold each museum location
+function Museum(location) {
+    var self = this;
+    // main location variables
+    self.name = ko.observable(location.name);
+    self.category = ko.observable(location.category);
+    self.address = ko.observable(location.address);
+    self.lat = ko.observable(location.lat);
+    self.lng = ko.observable(location.lng);
+    self.articles = ko.observable(location.articles);
+    self.marker = ko.observable(location.marker);
+
+    // visibility and marker animation
+    self.expanded = ko.observable(false);
+    self.toggle = function (location) {
+        // expand additional info
+        self.expanded(!self.expanded());
+
+        // animate marker
+        var thisMarker = self.marker();
+        if (thisMarker.getAnimation() !== null) {
+          thisMarker.setAnimation(null);
+        } else {
+          thisMarker.setAnimation(google.maps.Animation.BOUNCE);
+        }
+    };
+}
+
 
 // knockout.js view model
 // this is initialized
@@ -21,7 +49,7 @@ function viewModel() {
     var filter = self.selectedCategory();
 
     for (var i = 0; i < museums.length; i++) {
-        category = museums[i].category;
+        category = museums[i].category();
 
         if ((filter == undefined) || (filter == category)) {
 
@@ -126,6 +154,7 @@ function initMap() {
     mapTypeControl: false
   });
 
+
   // get api data
   // mapping of categories to foursquare id's
   museumCategories = {
@@ -214,12 +243,9 @@ function initMap() {
             address: venueAddress,
             lat: venueLat,
             lng: venueLng,
-            articles: articleOutput
+            articles: articleOutput,
+            marker: null
           }
-
-          // add location to array
-          // this data will be used to fill the sidebar
-          vm.museums.push(location);
 
           // info window to display street view data
           var largeInfowindow = new google.maps.InfoWindow();
@@ -248,8 +274,15 @@ function initMap() {
             id: i
           });
 
+          // add marker to location object
+          location.marker = marker;
+
           // Push the marker to our array of markers.
           markers.push(marker);
+
+          // add location to array
+          // this data will be used to fill the sidebar
+          vm.museums.push(new Museum(location));
 
           // Create an onclick event to open the large infowindow at each marker.
           // Make the marker bounce on click
@@ -328,41 +361,10 @@ function makeMarkerIcon(markerColor) {
 }
 
 
-$(document).ready( function() {
-  $(".locations").on("click", ".location", function() {
-    var thisLocation = $(this);
-    var thisName = thisLocation.find('.name').text();
-    var infowindow = new google.maps.InfoWindow();
-    var thisMarker;
-
-    // find associated marker
-    for (var i = 0; i < markers.length; i++) {
-      if (markers[i].title == thisName) {
-        thisMarker = markers[i];
-        infowindow.marker = thisMarker;
-      }
-    }
-
-    // animate associated marker
-    if (thisLocation.hasClass('open')) {
-      thisLocation.removeClass('open');
-      if (thisMarker != undefined) {
-        thisMarker.setAnimation(null);
-        infowindow.marker = null;
-        infowindow.setContent('');
-      }
-    }
-    else {
-      thisLocation.addClass('open');
-      if (thisMarker != undefined) {
-        thisMarker.setAnimation(google.maps.Animation.BOUNCE);
-        populateInfoWindow(thisMarker, infowindow);
-      }
-    }
-  });
-});
-
-
+// in case the map failed to load
+function mapError() {
+  alert("Google Maps failed to load");
+}
 
 // initialize view model
 ko.applyBindings(vm);

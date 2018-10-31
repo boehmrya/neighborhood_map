@@ -17,9 +17,9 @@
           </form>
         </div>
         <div class="locations" data-bind="foreach: filteredMuseums">
-          <div class="location">
+          <div class="location" data-bind="click: toggle">
             <div class="name" data-bind="text: name"></div>
-            <div class="more-info">
+            <div class="more-info" data-bind="visible: expanded">
               <div class="address" data-bind="text: address"></div>
               <div class="articles" data-bind="html: articles"></div>
             </div>
@@ -32,8 +32,8 @@
     <!-- scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?libraries=geometry,drawing&key=AIzaSyCVh9PUUhyMcATsVeuMl9kSYplnunZa5Xk&v=3&callback=initMap"></script>
     <script src="js/app.js"></script>
+    <script async defer onerror="mapError()" src="https://maps.googleapis.com/maps/api/js?libraries=geometry,drawing&key=AIzaSyCVh9PUUhyMcATsVeuMl9kSYplnunZa5Xk&v=3&callback=initMap"></script>
 
   </body>
 </html>

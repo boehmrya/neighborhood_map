@@ -69,16 +69,6 @@ h3 {
   cursor: pointer;
 }
 
-.location .more-info {
-  display: none;
-}
-
-.location.open .more-info {
-  display: block;
-  -webkit-transition: all .3s; /* Safari */
-  transition: all .3s;
-}
-
 [aria-hidden="true"] {
     visibility: hidden;
 }
